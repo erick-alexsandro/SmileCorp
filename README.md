@@ -1,33 +1,34 @@
-# Finly
+# SmileCorp
 
-O Finly resolve a principal barreira da gestão financeira: a complexidade. Muitas pessoas desistem de controlar seu dinheiro por se sentirem sobrecarregadas por aplicativos difíceis ou excesso de dados. O software foca na criação do hábito, substituindo a burocracia por uma interface de entrada rápida para registro de receitas e despesas. O público-alvo são iniciantes na organização de contas, que precisam de uma ferramenta simples para visualizar o balanço mensal sem distrações. Ao facilitar a visualização do saldo, o Finly ajuda quem deseja sair da desorganização e assumir o controle real sobre quanto ganha e quanto gasta.
+O SmileCorp é uma solução completa de gerenciamento para clínicas odontológicas, desenvolvida para resolver os desafios operacionais enfrentados por profissionais da área. O software centraliza essas funcionalidades em uma plataforma web, permitindo que dentistas e administradores foquem no atendimento ao paciente enquanto mantêm controle total sobre os recursos da clínica. O público-alvo são clínicas odontológicas de pequeno e médio porte que buscam profissionalizar sua gestão, reduzir custos operacionais e ter visibilidade em tempo real sobre estoque de materiais e saúde financeira do negócio.
 
 ## Funcionalidades
 
-- Adicionar Despesa
+- Gerenciamento de Estoque (adicionar, editar e remover materiais odontológicos)
 
-- Adicionar Receita
+- Controle Financeiro (registro de receitas e despesas)
 
-- Editar Despesa
+- Dashboard de Indicadores
 
-- Editar Receita
+- Relatórios Gerenciais
 
-- Excluir Despesa
+- Gestão de Fornecedores
 
-- Editar Receita
+- Alertas de Estoque Mínimo
 
-- Filtrar
-
-- Visualizar 
+- Histórico de Movimentações
 
 ## Tecnologias usadas
-Linguagem: Java
 
-Build: Maven 
+**Frontend:** Next.js (React)
 
-Testes unitários: JUnit 
+**Backend:** Node.js e Spring Boot (Java)
 
-BDD: Cucumber 
+**Build:** Maven (Java)
+
+**Testes unitários:** JUnit
+
+**BDD:** Cucumber
 
 ## Estrutura de pastas
 
@@ -56,3 +57,5 @@ BDD: Cucumber
 [Eduardo Vítor](https://github.com/EduardoVitor020)
 
 [André Custódio da Silva](https://github.com/AndreCS01)
+
+[Lucas Alves Rodrigues](https://github.com/RMlucasA)
