@@ -1,6 +1,6 @@
 # SmileCorp
 
-O SmileCorp é uma solução completa de gerenciamento para clínicas odontológicas, desenvolvida para resolver os desafios operacionais enfrentados por profissionais da área. O software centraliza essas funcionalidades em uma plataforma web, permitindo que dentistas e administradores foquem no atendimento ao paciente enquanto mantêm controle total sobre os recursos da clínica. O público-alvo são clínicas odontológicas de pequeno e médio porte que buscam profissionalizar sua gestão, reduzir custos operacionais e ter visibilidade em tempo real sobre estoque de materiais e saúde financeira do negócio.
+O SmileCorp é uma solução de gerenciamento para clínicas odontológicas, que permite aos dentistas e administradores foco completo no atendimento ao paciente enquanto mantêm controle total sobre os recursos da clínica. O público-alvo são clínicas odontológicas de pequeno e médio porte que buscam profissionalizar sua gestão, reduzir custos operacionais e ter visibilidade em tempo real sobre estoque de materiais e saúde financeira do negócio.
 
 ## Funcionalidades
 
