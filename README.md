@@ -1,61 +1,92 @@
-# SmileCorp
+<div style="text-align: center;">
+  <img src="resources\branding\product-logo.png" alt="Product Logo" width="100">
+</div>
 
-O SmileCorp é uma solução de gerenciamento para clínicas odontológicas, que permite aos dentistas e administradores foco completo no atendimento ao paciente enquanto mantêm controle total sobre os recursos da clínica. O público-alvo são clínicas odontológicas de pequeno e médio porte que buscam profissionalizar sua gestão, reduzir custos operacionais e ter visibilidade em tempo real sobre estoque de materiais e saúde financeira do negócio.
 
-## Funcionalidades
+<h1 style="text-align: center;">SmileCorp</h1>
 
-- Gerenciamento de Estoque (adicionar, editar e remover materiais odontológicos)
+<p style="text-align: center;">Uma plataforma de gerenciamento integrada para clínicas odontológicas, permitindo que dentistas e administradores foquem no atendimento ao paciente mantendo controle total dos recursos da clínica.</p>
+<br>
 
-- Controle Financeiro (registro de receitas e despesas)
+## Funcionalidades Principais
 
-- Dashboard de Indicadores
+- **Gestão de Pacientes**: Cadastro e gerenciamento de dados dos pacientes
+- **Agendamentos**: Sistema completo de agendamento com data, horário e profissional responsável
+- **Procedimentos**: Gerenciamento de procedimentos odontológicos com duração e preço
+- **Gerenciamento de Estoque:** Controle de materiais odontológicos com funcionalidades para adicionar, editar e remover itens.
 
-- Relatórios Gerenciais
+- **Controle Financeiro:** Registro e acompanhamento de receitas e despesas, com categorização, forma de pagamento, e data de vencimento.
 
-- Gestão de Fornecedores
+- **Dashboard de Indicadores:** Painel com métricas em tempo real (ou período selecionado), como número de atendimentos, taxa de faltas, faturamento, despesas, ticket médio e consumo de materiais.
 
-- Alertas de Estoque Mínimo
+- **Gestão de Fornecedores:** Cadastro e administração de fornecedores com dados de contato, produtos fornecidos, histórico de compras, condições comerciais e documentos relevantes.
 
-- Histórico de Movimentações
+## Stack de Tecnologias
 
-## Tecnologias usadas
+### Backend
+- **Framework**: Spring Boot 3.5.11 (Java 21)
+- **Banco de Dados**: PostgreSQL ([Neon Serverless Postgres](https://neon.com/))
+- **Build**: Maven
 
-**Frontend:** Next.js (React)
+### Frontend
+- **Framework**: Next.js 16.1.6
+- **Linguagem**: TypeScript 5
+- **UI**: React 19.2.3
+- **Componentes**: shadcn/ui com Tailwind CSS
+- **Build**: Tailwind CSS 4
 
-**Backend:** Node.js e Spring Boot (Java)
+### Testes
+- **Unitários**: JUnit
+- **BDD**: Cucumber 
 
-**Build:** Maven (Java)
-
-**Testes unitários:** JUnit
-
-**BDD:** Cucumber
-
-## Estrutura de pastas
+## Estrutura de Pastas
 
 ```
-/docs
-  /requisitos
-    requisitos-funcionais.md
-    requisitos-nao-funcionais.md
-  /testes
-    plano-de-teste.md
-    roteiros-de-teste.md
-    usabilidade.md
-    /evidencias
-/slides
-/src
+backend/
+  ├── src/
+  │   ├── main/
+  │   │   ├── java/com/smilecorp/SmileCorp/
+  │   │   │   ├── controller/        # Controladores REST
+  │   │   │   ├── model/             # Entidades JPA
+  │   │   │   └── repository/        # Repositórios de dados
+  │   │   └── resources/
+  │   │       └── application.properties
+  │   └── test/
+  └── pom.xml
+frontend/
+  ├── src/
+  │   ├── app/
+  │   │   ├── dashboard/             # Página do dashboard
+  │   │   └── scheduling/            # Página de agendamentos
+  |   |   └── finance/               # Página do financeiro
+  |   |   └── inventory/             # Página do estoque
+  │   ├── components/                # Componentes 
+  │   │   └── ui/                    # Componentes de UI
+  │   └── lib/
+  ├── package.json
+  └── tsconfig.json
+docs/
+  ├── requisitos/
+  │   ├── requisitos-funcionais.md
+  │   └── requisitos-nao-funcionais.md
+  └── testes/
+      ├── plano-de-teste.md
+      ├── roteiros-de-teste.md
+      └── usabilidade.md
 ```
+
+## Documentação Adicional
+
+- [Requisitos Funcionais](docs/requisitos/requisitos-funcionais.md)
+- [Requisitos Não-Funcionais](docs/requisitos/requisitos-nao-funcionais.md)
+- [Plano de Testes](docs/testes/plano-de-teste.md)
+- [Roteiros de Teste](docs/testes/roteiros-de-teste.md)
+- [Testes de Usabilidade](docs/testes/usabilidade.md)
 
 ## Colaboradores
 
-[Rafaela Moreira (Orientadora)](https://github.com/rafapcmor)
-
-[Erick Alexsandro](https://github.com/erick-alexsandro)
-
-[Samara Alves Gomes](https://github.com/samaraalvesgomes)
-
-[Eduardo Vítor](https://github.com/EduardoVitor020)
-
-[André Custódio da Silva](https://github.com/AndreCS01)
-
-[Lucas Alves Rodrigues](https://github.com/RMlucasA)
+- **[Rafaela Moreira](https://github.com/rafapcmor)** - Orientadora
+- **[Erick Alexsandro](https://github.com/erick-alexsandro)** - Desenvolvedor
+- **[Samara Alves Gomes](https://github.com/samaraalvesgomes)** - Desenvolvedora
+- **[Eduardo Vítor](https://github.com/EduardoVitor020)** - Desenvolvedor
+- **[André Custódio da Silva](https://github.com/AndreCS01)** - Desenvolvedor
