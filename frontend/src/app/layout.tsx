@@ -24,6 +24,7 @@ export const metadata: Metadata = {
   description: "Sistema inteligente de gestão de estoque e finanças",
 };
 
+// src/app/layout.tsx
 export default function RootLayout({
   children,
 }: {
