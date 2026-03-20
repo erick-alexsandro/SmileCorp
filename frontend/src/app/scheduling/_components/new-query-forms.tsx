@@ -19,21 +19,28 @@ export function NewQueryForms() {
   const [nomePaciente, setNomePaciente] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
-  
+
   const [dataConsulta, setDataConsulta] = useState("");
   const [horarioInicio, setHorarioInicio] = useState("");
   const [previsaoTermino, setPrevisaoTermino] = useState("");
+  const [idProfissional, setIdProfissional] = useState<number | null>(null);
   const [profissional, setProfissional] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  
-  const [procedimentosSelecionados, setProcedimentosSelecionados] = useState<any[]>([]);
+
+  const [procedimentosSelecionados, setProcedimentosSelecionados] = useState<
+    any[]
+  >([]);
 
   // --- 2. ÁREA DE UI (BUSCAS E SUGESTÕES) ---
   const [buscaProcedimento, setBuscaProcedimento] = useState("");
   const [sugestoes, setSugestoes] = useState<any[]>([]);
-  const [sugestoesProfissionais, setSugestoesProfissionais] = useState<any[]>([]);
-  const [sugestoesProcedimentos, setSugestoesProcedimentos] = useState<any[]>([]);
-  
+  const [sugestoesProfissionais, setSugestoesProfissionais] = useState<any[]>(
+    [],
+  );
+  const [sugestoesProcedimentos, setSugestoesProcedimentos] = useState<any[]>(
+    [],
+  );
+
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
   const [mostrarSugestoesProf, setMostrarSugestoesProf] = useState(false);
 
@@ -44,7 +51,9 @@ export function NewQueryForms() {
     const buscarPacientes = async () => {
       if (nomePaciente.length > 0 && mostrarSugestoes) {
         try {
-          const response = await fetch(`http://localhost:8080/pacientes?nome=${nomePaciente}`);
+          const response = await fetch(
+            `http://localhost:8080/api/pacientes/search?nome=${nomePaciente}`,
+          );
           const dados = await response.json();
           setSugestoes(dados);
         } catch (error) {
@@ -65,7 +74,9 @@ export function NewQueryForms() {
     const buscarProfissionais = async () => {
       if (profissional.length > 0 && mostrarSugestoesProf) {
         try {
-          const response = await fetch(`http://localhost:8080/profissionais?nome=${profissional}`);
+          const response = await fetch(
+            `http://localhost:8080/api/profissionais/search?nome=${profissional}`,
+          );
           const dados = await response.json();
           setSugestoesProfissionais(dados);
         } catch (error) {
@@ -86,7 +97,9 @@ export function NewQueryForms() {
     const buscarProcedimentos = async () => {
       if (buscaProcedimento.length > 0) {
         try {
-          const response = await fetch(`http://localhost:8080/procedimentos?nome=${buscaProcedimento}`);
+          const response = await fetch(
+            `http://localhost:8080/api/procedimentos?nome=${buscaProcedimento}`,
+          );
           const dados = await response.json();
           setSugestoesProcedimentos(dados);
         } catch (error) {
@@ -102,14 +115,35 @@ export function NewQueryForms() {
 
   // Regra 4: Cálculo da Previsão de Término
   useEffect(() => {
-    if (horarioInicio && procedimentosSelecionados.length > 0) {
-      const duracaoTotal = procedimentosSelecionados.reduce((acc, p) => acc + p.duracao, 0);
-      const [horas, minutos] = horarioInicio.split(":").map(Number);
-      let totalMinutos = horas * 60 + minutos + duracaoTotal;
+    console.log("Checking calculation...", {
+      horarioInicio,
+      count: procedimentosSelecionados.length,
+    });
 
-      const h = Math.floor(totalMinutos / 60) % 24;
-      const m = totalMinutos % 60;
-      setPrevisaoTermino(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    if (horarioInicio && procedimentosSelecionados.length > 0) {
+      // 1. Calculate total duration
+      const duracaoTotal = procedimentosSelecionados.reduce(
+        (acc, p) => acc + (Number(p.duracao) || 30),
+        0,
+      );
+
+      // 2. Parse start time
+      const [strHoras, strMinutos] = horarioInicio.split(":");
+      const horas = parseInt(strHoras, 10);
+      const minutos = parseInt(strMinutos, 10);
+
+      if (!isNaN(horas) && !isNaN(minutos)) {
+        // 3. Math for the end time
+        let totalMinutos = horas * 60 + minutos + duracaoTotal;
+        const h = Math.floor(totalMinutos / 60) % 24;
+        const m = totalMinutos % 60;
+
+        const resultado = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        console.log("Success! Previsão:", resultado);
+        setPrevisaoTermino(resultado);
+      }
+    } else {
+      setPrevisaoTermino("");
     }
   }, [procedimentosSelecionados, horarioInicio]);
 
@@ -141,22 +175,29 @@ export function NewQueryForms() {
         id: idPaciente,
         nome: nomePaciente,
         email: email,
-        telefone: telefone.replace(/\D/g, ""),
+        telefone: telefone,
       },
       data: dataConsulta,
       horarioInicio: horarioInicio,
       previsaoTermino: previsaoTermino,
       procedimentosIds: procedimentosSelecionados.map((p) => p.id),
-      profissional: profissional,
+
+      // ALTERAÇÃO AQUI: Enviar como objeto para casar com o @ManyToOne
+      profissional: {
+        id: idProfissional,
+        nome: profissional,
+      },
+
       observacoes: observacoes,
     };
 
     try {
-      const response = await fetch("http://localhost:8080/agendamentos", {
+      const response = await fetch("http://localhost:8080/api/agendamentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(agendamentoCompleto),
+        body: JSON.stringify(agendamentoCompleto), // Now this matches the Java Entity
       });
+      // ... rest of your logic
 
       if (response.ok) {
         alert("Agendamento salvo com sucesso!");
@@ -181,15 +222,14 @@ export function NewQueryForms() {
   };
 
   // --- 5. VALIDAÇÃO DE FORMULÁRIO ---
+  // --- 5. VALIDAÇÃO DE FORMULÁRIO ---
   const formularioValido =
-    nomePaciente.length > 0 &&
-    telefone.length >= 14 &&
+    nomePaciente.trim().length > 0 &&
+    telefone.replace(/\D/g, "").length >= 10 &&
     dataConsulta !== "" &&
     horarioInicio !== "" &&
-    previsaoTermino !== "" &&
-    profissional.length > 0 &&
-    procedimentosSelecionados.length > 0;
-
+    profissional.trim().length > 0 &&
+    procedimentosSelecionados.length > 0; // Removed the check for previsaoTermino
   return (
     <Dialog>
       {/* --- BOTÃO DE ABERTURA --- */}
@@ -203,13 +243,16 @@ export function NewQueryForms() {
         </DialogHeader>
 
         <div className="grid gap-10 py-5">
-          
           {/* --- BLOCO 1: DADOS BÁSICOS DO PACIENTE --- */}
           <div className="flex gap-3 w-full">
-            
             {/* Campo: Nome do Paciente (com sugestões) */}
-            <div className="grid gap-2 flex-1 relative" onClick={(e) => e.stopPropagation()}>
-              <Label htmlFor="paciente">Paciente<span className="text-red-500">*</span></Label>
+            <div
+              className="grid gap-2 flex-1 relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Label htmlFor="paciente">
+                Paciente<span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="paciente"
                 type="text"
@@ -233,7 +276,9 @@ export function NewQueryForms() {
                         onClick={() => {
                           setNomePaciente(sugestao.nome);
                           setEmail(sugestao.email || "");
-                          setTelefone(aplicarMascaraTelefone(sugestao.telefone || ""));
+                          setTelefone(
+                            aplicarMascaraTelefone(sugestao.telefone || ""),
+                          );
                           setIdPaciente(sugestao.id);
                           setSugestoes([]);
                           setMostrarSugestoes(false);
@@ -254,22 +299,26 @@ export function NewQueryForms() {
             {/* Campo: E-mail */}
             <div className="grid gap-2 flex-1">
               <Label htmlFor="email">E-mail</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={email} 
+              <Input
+                id="email"
+                type="email"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
             {/* Campo: Telefone */}
             <div className="grid gap-2 flex-1">
-              <Label htmlFor="telefone">Telefone<span className="text-red-500">*</span></Label>
+              <Label htmlFor="telefone">
+                Telefone<span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="telefone"
                 type="tel"
                 value={telefone}
-                onChange={(e) => setTelefone(aplicarMascaraTelefone(e.target.value))}
+                onChange={(e) =>
+                  setTelefone(aplicarMascaraTelefone(e.target.value))
+                }
                 placeholder="(xx) xxxxx-xxxx"
               />
             </div>
@@ -278,17 +327,21 @@ export function NewQueryForms() {
           {/* --- BLOCO 2: DATA E HORÁRIOS --- */}
           <div className="flex gap-3 w-full">
             <div className="grid gap-2 flex-1">
-              <Label htmlFor="data-consulta">Data<span className="text-red-500">*</span></Label>
-              <Input 
-                id="data-consulta" 
-                type="date" 
-                value={dataConsulta} 
+              <Label htmlFor="data-consulta">
+                Data<span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="data-consulta"
+                type="date"
+                value={dataConsulta}
                 onChange={(e) => setDataConsulta(e.target.value)}
               />
             </div>
 
             <div className="grid gap-2 flex-1">
-              <Label htmlFor="inicio">Horário de início<span className="text-red-500">*</span></Label>
+              <Label htmlFor="inicio">
+                Horário de início<span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="inicio"
                 type="time"
@@ -298,29 +351,32 @@ export function NewQueryForms() {
             </div>
 
             <div className="grid gap-2 flex-1">
-              <Label htmlFor="termino">Previsão do término<span className="text-red-500">*</span></Label>
+              <Label htmlFor="termino">
+                Previsão do término<span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="termino"
                 type="time"
                 value={previsaoTermino}
-                readOnly 
+                readOnly
               />
             </div>
           </div>
 
           {/* --- BLOCO 3: SERVIÇOS E PROFISSIONAL --- */}
           <div className="flex gap-3 w-full items-start">
-            
             {/* Campo: Busca de Procedimentos */}
             <div className="grid gap-2 flex-1 relative">
-              <Label>Procedimentos<span className="text-red-500">*</span></Label>
+              <Label>
+                Procedimentos<span className="text-red-500">*</span>
+              </Label>
               <Input
                 placeholder="Buscar procedimento..."
                 value={buscaProcedimento}
                 onChange={(e) => setBuscaProcedimento(e.target.value)}
                 autoComplete="off"
               />
-              
+
               {/* Sugestões de Procedimentos */}
               {sugestoesProcedimentos.length > 0 && (
                 <ul className="absolute top-full z-10 w-full bg-white border rounded-md shadow-lg mt-1">
@@ -329,8 +385,16 @@ export function NewQueryForms() {
                       key={p.id}
                       className="p-2 hover:bg-slate-100 cursor-pointer text-sm"
                       onClick={() => {
-                        if (!procedimentosSelecionados.find((item) => item.id === p.id)) {
-                          setProcedimentosSelecionados([...procedimentosSelecionados, p]);
+                        if (
+                          !procedimentosSelecionados.find(
+                            (item) => item.id === p.id,
+                          )
+                        ) {
+                          setProcedimentosSelecionados([
+                            ...procedimentosSelecionados,
+                            // Explicitly spread p to ensure 'duracao' is included
+                            { ...p },
+                          ]);
                         }
                         setBuscaProcedimento("");
                         setSugestoesProcedimentos([]);
@@ -345,11 +409,20 @@ export function NewQueryForms() {
               {/* Badges de Procedimentos Selecionados */}
               <div className="flex flex-wrap gap-2 mt-2">
                 {procedimentosSelecionados.map((p) => (
-                  <span key={p.id} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs flex items-center gap-1">
+                  <span
+                    key={p.id}
+                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs flex items-center gap-1"
+                  >
                     {p.nome}
                     <button
                       type="button"
-                      onClick={() => setProcedimentosSelecionados(procedimentosSelecionados.filter((i) => i.id !== p.id))}
+                      onClick={() =>
+                        setProcedimentosSelecionados(
+                          procedimentosSelecionados.filter(
+                            (i) => i.id !== p.id,
+                          ),
+                        )
+                      }
                     >
                       ×
                     </button>
@@ -359,8 +432,13 @@ export function NewQueryForms() {
             </div>
 
             {/* Campo: Profissional (com sugestões) */}
-            <div className="grid gap-2 flex-1 relative" onClick={(e) => e.stopPropagation()}>
-              <Label htmlFor="profissional">Profissional <span className="text-red-500">*</span></Label>
+            <div
+              className="grid gap-2 flex-1 relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Label htmlFor="profissional">
+                Profissional <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="profissional"
                 type="text"
@@ -383,7 +461,8 @@ export function NewQueryForms() {
                         key={index}
                         className="p-2 hover:bg-slate-100 cursor-pointer text-sm text-black font-medium"
                         onClick={() => {
-                          setProfissional(prof.nome);
+                          setProfissional(prof.nome); // Mantém o nome no input
+                          setIdProfissional(prof.id); // NOVO: Guarda o ID para o banco
                           setMostrarSugestoesProf(false);
                         }}
                       >
