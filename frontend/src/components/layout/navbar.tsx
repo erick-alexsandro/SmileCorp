@@ -15,7 +15,7 @@ export function Navbar() {
 
   // CONFIGURAÇÃO DOS ITENS DO MENU: rótulo, rota de destino e ícone correspondente
   const menuItems = [
-    { label: "Agenda", href: "/scheduling", icon: Calendar },
+    { label: "Agenda", href: "/treatment/scheduling", icon: Calendar },
     { label: "Estoque", href: "/inventory", icon: Package },
     { label: "Financeiro", href: "/financial", icon: DollarSign },
   ];
