@@ -1,11 +1,13 @@
-<div style="text-align: center;">
-  <img src="resources\branding\product-logo.png" alt="Product Logo" width="100">
+<div align="center">
+<img src="resources\branding\product-logo.png" alt="Product Logo" width="100">
+
+<h1>SmileCorp</h1>
+
+<p>
+  Uma plataforma de gerenciamento integrada para clínicas odontológicas, permitindo que dentistas e administradores foquem no atendimento ao paciente mantendo controle total dos recursos da clínica.
+</p>
 </div>
 
-
-<h1 style="text-align: center;">SmileCorp</h1>
-
-<p style="text-align: center;">Uma plataforma de gerenciamento integrada para clínicas odontológicas, permitindo que dentistas e administradores foquem no atendimento ao paciente mantendo controle total dos recursos da clínica.</p>
 <br>
 
 ## Funcionalidades Principais
@@ -89,4 +91,3 @@ docs/
 - **[Erick Alexsandro](https://github.com/erick-alexsandro)** - Desenvolvedor
 - **[Samara Alves Gomes](https://github.com/samaraalvesgomes)** - Desenvolvedora
 - **[Eduardo Vítor](https://github.com/EduardoVitor020)** - Desenvolvedor
-- **[André Custódio da Silva](https://github.com/AndreCS01)** - Desenvolvedor
