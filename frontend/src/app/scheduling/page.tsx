@@ -2,6 +2,7 @@
 
 import { NewQueryForms } from "./_components/new-query-forms";
 import { CalendarEventCard } from "./_components/calendar-event-card";
+import { apiGet } from "@/lib/api";
 
 import ShadcnBigCalendar from "@/components/shadcn-big-calendar/shadcn-big-calendar";
 import { Button } from "@/components/ui/button";
@@ -240,7 +241,7 @@ export default function SchedulingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-primary">
-            Agenda SmileCorp
+            Agenda 
           </h2>
           <p className="text-muted-foreground italic text-sm">
             Controle de consultas e horários

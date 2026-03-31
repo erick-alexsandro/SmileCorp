@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { apiGet, apiPost } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
