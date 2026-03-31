@@ -74,7 +74,7 @@ const navItems: NavItem[] = [
     children: [
       {
         title: "Agenda",
-        href: "/scheduling",
+        href: "/treatment/scheduling",
         description: "Acompanhe os agendamentos e horários dos clientes",
         icon: Calendar,
       },

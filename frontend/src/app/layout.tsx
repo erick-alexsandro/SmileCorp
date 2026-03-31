@@ -4,7 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/layout/navbar";
 import { NeonAuthUIProvider } from '@neondatabase/auth/react';
-import { authClient } from '@/app/api/auth/client';
+import { authClient } from '@/lib/auth/client';
 
 
 // --- CONFIGURAÇÃO DE FONTES ---
@@ -39,7 +39,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={cn("font-sans", inter.variable)} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col h-screen`}>
                <NeonAuthUIProvider
-  authClient={authClient}
+  authClient={authClient as any}
   redirectTo="/account/settings"
   emailOTP
   localization={{
@@ -121,7 +121,6 @@ NEW_PASSWORD_PLACEHOLDER: "Nova senha",
 DELETE_ACCOUNT_INSTRUCTIONS: "Por favor, confirme a exclusão da sua conta. Esta ação não pode ser desfeita.",
 
 // Sessions
-SESSIONS_DESCRIPTION: "Gerencie suas sessões ativas e revogue acessos.",
 CURRENT_SESSION: "Sessão atual",
 
 // Avatar
