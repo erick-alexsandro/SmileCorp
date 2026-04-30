@@ -14,7 +14,6 @@ import {
   Calendar,
   Users,
   CreditCard,
-  Calendars,
   SearchIcon,
   LoaderCircleIcon,
   Coins,
@@ -23,6 +22,8 @@ import {
   Truck,
   ClipboardPlus,
   SquareActivity,
+  Building2,
+  UserPlus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,11 +47,13 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
+import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { UserButton } from '@neondatabase/auth/react';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface NavLinkItem {
   title: string;
@@ -66,100 +69,44 @@ interface NavItem {
   children?: NavLinkItem[];
 }
 
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Nav data ─────────────────────────────────────────────────────────────────
 
 const navItems: NavItem[] = [
   {
     title: "Atendimentos",
     children: [
-      {
-        title: "Agenda",
-        href: "/treatment/scheduling",
-        description: "Acompanhe os agendamentos e horários dos clientes",
-        icon: Calendar,
-      },
-      {
-        title: "Pacientes",
-        href: "/patients",
-        description: "Gerencie as informações dos pacientes",
-        icon: Users,
-      },
-      {
-        title: "Pontuários",
-        href: "/points",
-        description: "Gerencie os pontos dos pacientes",
-        icon: ClipboardPlus,
-      },
-      {
-        title: "Procedimentos",
-        href: "/procedures",
-        description: "Visualize e altere os procedimentos",
-        icon: SquareActivity,
-      },
+      { title: "Agenda",        href: "/treatment/scheduling", description: "Acompanhe os agendamentos e horários dos clientes", icon: Calendar },
+      { title: "Pacientes",     href: "/patients",             description: "Gerencie as informações dos pacientes",           icon: Users },
+      { title: "Pontuários",    href: "/points",               description: "Gerencie os pontos dos pacientes",               icon: ClipboardPlus },
+      { title: "Procedimentos", href: "/procedures",           description: "Visualize e altere os procedimentos",            icon: SquareActivity },
     ],
   },
   {
     title: "Financeiro",
     children: [
-      {
-        title: "Fluxo de Caixa",
-        href: "/cashflow",
-        description: "Acompanhe as entradas e saídas financeiras",
-        icon: Coins,
-      },
-      { 
-        title: "Contas a Pagar",
-        href: "/accounts-payable",
-        description: "Gerencie as contas a pagar e seus vencimentos",
-        icon: BanknoteArrowUp,
-      },
-      {
-        title: "Contas a Receber",
-        href: "/accounts-receivable",
-        description: "Gerencie as contas a receber e seus vencimentos",
-        icon: BanknoteArrowDown,
-      },
+      { title: "Fluxo de Caixa",     href: "/cashflow",           description: "Acompanhe as entradas e saídas financeiras",       icon: Coins },
+      { title: "Contas a Pagar",     href: "/accounts-payable",   description: "Gerencie as contas a pagar e seus vencimentos",    icon: BanknoteArrowUp },
+      { title: "Contas a Receber",   href: "/accounts-receivable",description: "Gerencie as contas a receber e seus vencimentos",  icon: BanknoteArrowDown },
     ],
   },
   {
     title: "Estoque",
     children: [
-      {
-        title: "Produtos e Insumos",
-        href: "/products",
-        description: "Gerencie os produtos e insumos do estoque ",
-        icon: Package,
-      },
-      {
-        title: "Fornecedores",
-        href: "/suppliers",
-        description: "Gerencie as informações dos fornecedores",
-        icon: Truck,
-      },
+      { title: "Produtos e Insumos", href: "/products",  description: "Gerencie os produtos e insumos do estoque", icon: Package },
+      { title: "Fornecedores",       href: "/suppliers", description: "Gerencie as informações dos fornecedores",  icon: Truck },
     ],
   },
 ];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── ListItem ─────────────────────────────────────────────────────────────────
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a"> & {
-    title: string;
-    icon?: React.ElementType;
-    badge?: string;
-  }
+  React.ComponentPropsWithoutRef<"a"> & { title: string; icon?: React.ElementType; badge?: string }
 >(({ className, title, children, icon: Icon, badge, ...props }, ref) => (
   <li>
     <NavigationMenuLink asChild>
-      <a
-        ref={ref}
-        className={cn(
-          "group flex select-none gap-3 rounded-lg p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent",
-          className,
-        )}
-        {...props}
-      >
+      <a ref={ref} className={cn("group flex select-none gap-3 rounded-lg p-3 leading-none no-underline outline-none transition-colors hover:bg-accent focus:bg-accent", className)} {...props}>
         {Icon && (
           <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background shadow-xs transition-colors group-hover:border-primary/30 group-hover:bg-primary/5">
             <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
@@ -168,20 +115,9 @@ const ListItem = React.forwardRef<
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium leading-none">{title}</span>
-            {badge && (
-              <Badge
-                variant="secondary"
-                className="h-4 rounded-sm px-1 py-0 text-[10px] font-semibold"
-              >
-                {badge}
-              </Badge>
-            )}
+            {badge && <Badge variant="secondary" className="h-4 rounded-sm px-1 py-0 text-[10px] font-semibold">{badge}</Badge>}
           </div>
-          {children && (
-            <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">
-              {children}
-            </p>
-          )}
+          {children && <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{children}</p>}
         </div>
       </a>
     </NavigationMenuLink>
@@ -189,34 +125,25 @@ const ListItem = React.forwardRef<
 ));
 ListItem.displayName = "ListItem";
 
-// ─── SearchBar ─────────────────────────────────────────────────────────
+// ─── SearchBar ────────────────────────────────────────────────────────────────
 
 const SearchBar = () => {
   const [value, setValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
   const id = useId();
 
   useEffect(() => {
-    if (value) {
-      setIsLoading(true);
-
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-
-    setIsLoading(false);
+    if (!value) { setIsLoading(false); return; }
+    setIsLoading(true);
+    const t = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(t);
   }, [value]);
 
   return (
     <div className="w-full max-w-xs space-y-2 px-3">
       <div className="relative">
-        <div className="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3 peer-disabled:opacity-50">
+        <div className="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3">
           <SearchIcon className="size-4" />
-          <span className="sr-only">Pesquisar....</span>
         </div>
         <Input
           id={id}
@@ -227,9 +154,8 @@ const SearchBar = () => {
           className="peer px-9 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none [&::-webkit-search-results-button]:appearance-none [&::-webkit-search-results-decoration]:appearance-none"
         />
         {isLoading && (
-          <div className="text-muted-foreground pointer-events-none absolute inset-y-0 right-0 flex items-center justify-center pr-3 peer-disabled:opacity-50">
+          <div className="text-muted-foreground pointer-events-none absolute inset-y-0 right-0 flex items-center justify-center pr-3">
             <LoaderCircleIcon className="size-4 animate-spin" />
-            <span className="sr-only">Carregando...</span>
           </div>
         )}
       </div>
@@ -237,24 +163,14 @@ const SearchBar = () => {
   );
 };
 
-// ─── Mobile Sheet Nav ─────────────────────────────────────────────────────────
+// ─── Mobile Nav ───────────────────────────────────────────────────────────────
 
-function MobileNavSection({
-  item,
-  onClose,
-}: {
-  item: NavItem;
-  onClose: () => void;
-}) {
+function MobileNavSection({ item, onClose }: { item: NavItem; onClose: () => void }) {
   const [open, setOpen] = React.useState(false);
 
   if (!item.children) {
     return (
-      <Link
-        href={item.href ?? "#"}
-        onClick={onClose}
-        className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
-      >
+      <Link href={item.href ?? "#"} onClick={onClose} className="flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent transition-colors">
         {item.title}
       </Link>
     );
@@ -262,37 +178,17 @@ function MobileNavSection({
 
   return (
     <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
-      >
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm font-medium hover:bg-accent transition-colors">
         {item.title}
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform duration-200",
-            open && "rotate-180",
-          )}
-        />
+        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
       </button>
       {open && (
         <div className="mt-1 ml-3 space-y-0.5 border-l pl-3">
           {item.children.map((child) => (
-            <Link
-              key={child.href}
-              href={child.href}
-              onClick={onClose}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            >
+            <Link key={child.href} href={child.href} onClick={onClose}
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               {child.icon && <child.icon className="h-4 w-4 shrink-0" />}
               <span>{child.title}</span>
-              {child.badge && (
-                <Badge
-                  variant="secondary"
-                  className="ml-auto h-4 px-1 text-[10px]"
-                >
-                  {child.badge}
-                </Badge>
-              )}
             </Link>
           ))}
         </div>
@@ -301,7 +197,7 @@ function MobileNavSection({
   );
 }
 
-function MobileSheet({ user, clinic }: { user?: any; clinic?: any }) {
+function MobileSheet({ user, clinic, onSignOut }: { user?: any; clinic?: any; onSignOut: () => void }) {
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -309,84 +205,53 @@ function MobileSheet({ user, clinic }: { user?: any; clinic?: any }) {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="lg:hidden">
           <Menu className="h-5 w-5" />
-          <span className="sr-only">Open menu</span>
+          <span className="sr-only">Abrir menu</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="flex w-80 flex-col p-0">
         <SheetHeader className="border-b px-4 py-3">
           <SheetTitle asChild>
-            <Link
-              href="/"
-              className="flex items-center gap-2"
-              onClick={() => setOpen(false)}
-            >
+            <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
               <Logo />
             </Link>
           </SheetTitle>
-          {clinic?.name && (
-            <div className="mt-2 text-sm text-muted-foreground">{clinic.name}</div>
-          )}
+          <div className="mt-2">
+            <ClinicBadge name={clinic?.name} />
+          </div>
         </SheetHeader>
 
         <ScrollArea className="flex-1 px-4 py-4">
           <nav className="space-y-1">
             {navItems.map((item) => (
-              <MobileNavSection
-                key={item.title}
-                item={item}
-                onClose={() => setOpen(false)}
-              />
+              <MobileNavSection key={item.title} item={item} onClose={() => setOpen(false)} />
             ))}
           </nav>
 
           <Separator className="my-4" />
 
           <div className="space-y-1">
-            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Account
-            </p>
-            {[
-              { icon: User, label: "Profile", href: "/profile" },
-              { icon: Settings, label: "Settings", href: "/settings" },
-              { icon: CreditCard, label: "Billing", href: "/billing" },
-            ].map(({ icon: Icon, label, href }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            ))}
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Conta</p>
+            <Link href="/equipe" onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+              <UserPlus className="h-4 w-4" /> Gerenciar Equipe
+            </Link>
           </div>
         </ScrollArea>
 
         <div className="border-t p-4 space-y-3">
           <div className="flex items-center gap-3">
             <Avatar className="h-9 w-9">
-              {user?.user_metadata?.avatar_url || user?.avatar_url ? (
-                <AvatarImage src={user?.user_metadata?.avatar_url || user?.avatar_url} alt={user?.email || 'avatar'} />
-              ) : (
-                <AvatarFallback className="text-xs font-semibold">{(user?.email || 'U').charAt(0)}</AvatarFallback>
-              )}
+              <AvatarFallback className="text-xs font-semibold">
+                {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate">{user?.user_metadata?.name || user?.name || (user?.email?.split('@')[0]) || 'Usuário'}</p>
+              <p className="text-sm font-medium truncate">{user?.name || user?.email?.split('@')[0] || 'Usuário'}</p>
               <p className="text-xs text-muted-foreground truncate">{user?.email || ''}</p>
-              {clinic?.name && (
-                <p className="text-xs text-muted-foreground truncate">{clinic.name}</p>
-              )}
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start text-destructive hover:text-destructive"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair da conta
+          <Button variant="outline" size="sm" className="w-full justify-start text-destructive hover:text-destructive" onClick={onSignOut}>
+            <LogOut className="mr-2 h-4 w-4" /> Sair da conta
           </Button>
         </div>
       </SheetContent>
@@ -407,91 +272,87 @@ function Logo() {
   );
 }
 
+// ─── ClinicBadge ──────────────────────────────────────────────────────────────
+
+function ClinicBadge({ name }: { name?: string }) {
+  if (!name) {
+    return (
+      <span className="text-sm font-medium text-muted-foreground italic">Sem clínica</span>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border bg-accent/50 px-2.5 py-1 text-sm font-medium">
+      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+      <span>{name}</span>
+    </div>
+  );
+}
+
 // ─── Main Navbar ──────────────────────────────────────────────────────────────
 
 export function Navbar() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [clinic, setClinic] = useState<any>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadUser() {
-      try {
-        const res = await fetch('/api/user');
-        if (!res.ok) return;
-        const json = await res.json();
-        const u = json.user || json;
-        if (!mounted) return;
-        setUser(u);
-
-        // Try to extract clinic/organization information from several common shapes
-        const getClinic = (u: any) => {
-          if (!u) return null;
-          // better-auth organization plugin may put organization or organizations
-          if (u.organization) {
-            const o = u.organization;
-            if (typeof o === 'object') return { id: o.id || o.organization_id || o.clinic_id, name: o.name || o.nome, cnpj: o.cnpj };
-            return { id: o, name: String(o) };
-          }
-          if (u.organizations && Array.isArray(u.organizations) && u.organizations.length > 0) {
-            const o = u.organizations[0];
-            return { id: o.id || o.organization_id || o.clinic_id, name: o.name || o.nome };
-          }
-          if (u.current_organization) {
-            const o = u.current_organization;
-            return { id: o.id || o.organization_id || o.clinic_id, name: o.name || o.nome };
-          }
-          // neon auth / jwt style
-          if (u.user_metadata && u.user_metadata.clinic) {
-            const c = u.user_metadata.clinic;
-            if (typeof c === 'object') return { id: c.id || c.clinic_id, name: c.name || c.nome };
-            return { id: u.user_metadata.clinic_id || u.user_metadata.clinic, name: String(u.user_metadata.clinic) };
-          }
-          if (u.user_metadata && (u.user_metadata.organization || u.user_metadata.org)) {
-            const c = u.user_metadata.organization || u.user_metadata.org;
-            if (typeof c === 'object') return { id: c.id || c.organization_id, name: c.name || c.nome };
-            return { id: c, name: String(c) };
-          }
-          if (u.app_metadata && (u.app_metadata.clinic || u.app_metadata.organization)) {
-            const c = u.app_metadata.clinic || u.app_metadata.organization;
-            if (typeof c === 'object') return { id: c.id || c.clinic_id, name: c.name || c.nome };
-            return { id: c, name: String(c) };
-          }
-          // fallback: direct clinic claim
-          if (u.clinic_id || u.clinic) return { id: u.clinic_id || u.clinic, name: u.clinic_name || u.clinic || null };
-          return null;
-        };
-
-        const c = json.clinic || getClinic(u);
-        if (c) setClinic(c);
-      } catch (e) {
-        // ignore
-      }
+  const loadUser = async () => {
+    try {
+      const res = await fetch('/api/user');
+      if (!res.ok) return;
+      const data = await res.json();
+      setUser(data.user);
+      setClinic(data.clinic);
+    } catch (e) {
+      console.error("Navbar loadUser error:", e);
     }
+  };
 
+  useEffect(() => {
+    // Refresh user data when pathname changes (navigation)
     loadUser();
-    return () => { mounted = false; };
+  }, [pathname]);
+
+  useEffect(() => {
+    // Also refresh every 30 seconds as a fallback
+    const interval = setInterval(loadUser, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await Promise.race([
+        authClient.signOut(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+      ]);
+    } catch {}
+    
+    // Clear user and clinic immediately
+    setUser(null);
+    setClinic(null);
+    
+    try { router.push('/auth/sign-in'); } catch { window.location.href = '/auth/sign-in'; }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Main navigation row */}
       <div className="px-4">
-        <div className="mx-auto flex h-14  items-center gap-4">
+        <div className="mx-auto flex h-14 items-center gap-4">
+
           {/* Mobile hamburger */}
-          <MobileSheet user={user} clinic={clinic} />
+          <MobileSheet user={user} clinic={clinic} onSignOut={handleSignOut} />
 
           {/* Logo */}
           <Link href="/" className="mr-2 flex items-center">
             <Logo />
           </Link>
 
-          {/* Clinic name (if available) */}
-          <div className="hidden md:block mr-4">
-            <span className="text-sm font-medium text-muted-foreground">{clinic?.name ?? 'Sem clínica'}</span>
+          {/* Clinic name */}
+          <div className="mr-4">
+            <ClinicBadge name={clinic?.name} />
           </div>
 
-          {/* Desktop navigation */}
+          {/* Desktop nav */}
           <NavigationMenu className="hidden lg:flex">
             <NavigationMenuList>
               {navItems.map((item) =>
@@ -501,22 +362,9 @@ export function Navbar() {
                       {item.title}
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <ul
-                        className={cn(
-                          "grid gap-1 p-3",
-                          item.children.length > 4
-                            ? "w-[520px] grid-cols-2"
-                            : "w-[360px] grid-cols-1",
-                        )}
-                      >
+                      <ul className={cn("grid gap-1 p-3", item.children.length > 4 ? "w-[520px] grid-cols-2" : "w-[360px] grid-cols-1")}>
                         {item.children.map((child) => (
-                          <ListItem
-                            key={child.href}
-                            title={child.title}
-                            href={child.href}
-                            icon={child.icon}
-                            badge={child.badge}
-                          >
+                          <ListItem key={child.href} title={child.title} href={child.href} icon={child.icon} badge={child.badge}>
                             {child.description}
                           </ListItem>
                         ))}
@@ -526,30 +374,28 @@ export function Navbar() {
                 ) : (
                   <NavigationMenuItem key={item.title}>
                     <Link href={item.href ?? "#"} legacyBehavior passHref>
-                      <NavigationMenuLink
-                        className={cn(
-                          navigationMenuTriggerStyle(),
-                          "h-8 text-sm font-medium bg-transparent",
-                        )}
-                      >
+                      <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "h-8 text-sm font-medium bg-transparent")}>
                         {item.title}
                       </NavigationMenuLink>
                     </Link>
                   </NavigationMenuItem>
-                ),
+                )
               )}
             </NavigationMenuList>
           </NavigationMenu>
 
-          {/* Right side actions */}
+          {/* Right side */}
           <div className="ml-auto flex items-center gap-1">
-            {/* Search */}
+            {/* Manage team link */}
+            <Link href="/equipe">
+              <Button variant="ghost" size="sm" className="hidden md:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden lg:inline">Equipe</span>
+              </Button>
+            </Link>
+
             <SearchBar />
-
-            {/* Separator */}
             <Separator orientation="vertical" className="" />
-
-            {/* User Auth */}
             <UserButton size="icon" />
           </div>
         </div>

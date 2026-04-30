@@ -2,12 +2,11 @@
 
 import { NewQueryForms } from "./_components/new-query-forms";
 import { CalendarEventCard } from "./_components/calendar-event-card";
-import { apiGet } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 import ShadcnBigCalendar from "@/components/shadcn-big-calendar/shadcn-big-calendar";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-
 import {
   Field,
   FieldDescription,
@@ -31,12 +30,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { format } from "date-fns/format";
-
 import { RefreshCcw, SlidersHorizontal } from "lucide-react";
 import moment from "moment";
-import { SetStateAction, useState, useEffect } from "react";
-
-// Big calendar do react instalado pelo npm
+import { SetStateAction, useState, useEffect, useCallback } from "react";
 import type { CalendarProps } from "react-big-calendar";
 import { momentLocalizer, Views } from "react-big-calendar";
 
@@ -46,35 +42,27 @@ const messages = {
   today: "Hoje",
   previous: "Anterior",
   next: "Próximo",
-
   month: "Mês",
   week: "Semana",
   day: "Dia",
   agenda: "Agenda",
-
   date: "Data",
   time: "Hora",
   event: "Evento",
-
   allDay: "Dia inteiro",
   noEventsInRange: "Nenhum evento neste período",
 };
 
 const localizer = momentLocalizer(moment);
+// const API_BASE = "http://localhost:8080";
 
 type CalendarEvent = {
   title: string;
   patient?: string;
+  procedure?: string;
   start: Date;
   end: Date;
   variant?: "primary" | "secondary" | "outline";
-};
-
-const startOfToday = new Date();
-startOfToday.setHours(0, 0, 0, 0);
-
-const createDate = (date: string, time: string) => {
-  return moment(`${date} ${time}`, "YYYY-MM-DD HH:mm").toDate();
 };
 
 export default function SchedulingPage() {
@@ -82,7 +70,9 @@ export default function SchedulingPage() {
   const [date, setDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [allDoctors, setAllDoctors] = useState<string[]>([]);
-  const [procedimentosMap, setProcedimentosMap] = useState<Record<number, string>>({});
+  const [procedimentosMap, setProcedimentosMap] = useState<
+    Record<number, string>
+  >({});
   const [reloadToken, setReloadToken] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -92,156 +82,162 @@ export default function SchedulingPage() {
     startDate: "",
     endDate: "",
   };
-
   const [filters, setFilters] =
     useState<Record<string, string>>(defaultFilters);
   const [filtersDraft, setFiltersDraft] =
     useState<Record<string, string>>(defaultFilters);
 
-  // Fetch all doctors on mount
-  const fetchEvents = () => {
+  // ── Fetch appointments (scoped to the user's clinic via apiFetch headers) ──
+
+  const fetchEvents = useCallback(async () => {
     setIsLoading(true);
-    const params = new URLSearchParams();
-    if (filters.doctor) params.append("doctor", filters.doctor);
-    if (filters.patient) params.append("patient", filters.patient);
-    if (filters.startDate) params.append("startDate", filters.startDate);
-    if (filters.endDate) params.append("endDate", filters.endDate);
+    try {
+      const params = new URLSearchParams();
+      if (filters.doctor) params.append("doctor", filters.doctor);
+      if (filters.patient) params.append("patient", filters.patient);
+      if (filters.startDate) params.append("startDate", filters.startDate);
+      if (filters.endDate) params.append("endDate", filters.endDate);
 
-    fetch(`http://localhost:8080/api/agendamentos?${params}`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("DADOS FILTRADOS DO BACKEND:", data);
-        const formattedEvents = data.map((item: any) => {
-          const listedProcedures = item.procedimentos?.length
-            ? item.procedimentos
-                .map((p: any) => (typeof p === "string" ? p : p.nome || ""))
-                .filter(Boolean)
-            : [];
+      const res = await apiFetch(`/api/proxy/agendamentos?${params}`);
+      if (!res.ok) {
+        console.error(
+          "Erro ao buscar agendamentos:",
+          res.status,
+          res.statusText,
+        );
+        return;
+      }
+      const data = await res.json();
+      console.log("[fetchEvents] Raw data from API:", data);
 
-          const idsProcedures = item.procedimentosIds?.length
-            ? item.procedimentosIds
-                .map((id: number) => procedimentosMap[id])
-                .filter(Boolean)
-            : [];
+      const formatted = data.map((item: any) => {
+  // 1. Garantir que procedimentosIds seja um array, mesmo que o banco retorne null
+  const idsDoBanco = item.procedimentosIds || [];
+  
+  const byId = idsDoBanco.length
+    ? idsDoBanco.map((id: number) => procedimentosMap[id]).filter(Boolean)
+    : [];
 
-          const procedureText =
-            listedProcedures.length > 0
-              ? listedProcedures.join(", ")
-              : idsProcedures.length > 0
-              ? idsProcedures.join(", ")
-              : item.observacoes || "Procedimento não informado";
+  const procedureText = byId.length > 0 
+    ? byId.join(", ") 
+    : (item.observacoes || "Procedimento não informado");
 
-          return {
-            title: item.profissional?.nome || "Profissional não informado",
-            patient: item.paciente ? item.paciente.nome : "Sem nome",
-            procedure: procedureText,
-            start: new Date(item.data + "T" + item.horarioInicio),
-            end: new Date(item.data + "T" + item.previsaoTermino),
-            variant: "primary" as const,
-          };
-        });
-        setEvents(formattedEvents);
-      })
-      .catch((err) => console.error("Erro na busca filtrada:", err))
-      .finally(() => setIsLoading(false));
+  // item.data is already a full ISO datetime like "2026-04-10T09:00:00"
+  // We need to extract the date part and combine with horaInicio and horaFim
+  const datePart = item.data.split('T')[0]; // "2026-04-10"
+  
+  const event = {
+    title: item.profissionalNome || "Profissional não informado",
+    patient: item.pacienteNome || "Sem nome",
+    procedure: procedureText,
+    start: new Date(`${datePart}T${item.horaInicio}:00`),
+    end: new Date(`${datePart}T${item.horaFim}:00`),
+    variant: "primary" as const,
   };
+  
+  console.log("[fetchEvents] Formatted event:", {
+    raw: { data: item.data, horaInicio: item.horaInicio, horaFim: item.horaFim, datePart },
+    formatted: event,
+    startValid: event.start instanceof Date && !isNaN(event.start.getTime()),
+    endValid: event.end instanceof Date && !isNaN(event.end.getTime()),
+  });
+  
+  return event;
+});
+
+      console.log("[fetchEvents] Total events formatted:", formatted.length);
+      setEvents(formatted);
+    } catch (err) {
+      console.error("Erro na busca de agendamentos:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters, procedimentosMap]);
+
+  // ── Initial load ───────────────────────────────────────────────────────────
 
   useEffect(() => {
-    // Load all procedures once, so we can display names for agendamentos
-    fetch("http://localhost:8080/api/procedimentos")
-      .then((res) => res.json())
-      .then((data) => {
-        const procMap: Record<number, string> = {};
-        data.forEach((proc: any) => {
-          if (proc?.id != null) {
-            procMap[Number(proc.id)] = proc.nome || "Procedimento";
-          }
+    const loadProcedimentos = async () => {
+      try {
+        const res = await apiFetch(`/api/proxy/procedimentos`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const map: Record<number, string> = {};
+        data.forEach((p: any) => {
+          if (p?.id != null) map[Number(p.id)] = p.nome || "Procedimento";
         });
-        setProcedimentosMap(procMap);
-      })
-      .catch((err) => console.error("Erro ao buscar procedimentos:", err));
+        setProcedimentosMap(map);
+      } catch {}
+    };
 
-    fetch("http://localhost:8080/api/agendamentos")
-      .then((res) => res.json())
-      .then((data) => {
-        const docs = Array.from(
-          new Set(data.map((item: any) => item.profissional?.nome).filter(Boolean)),
-        );
-        setAllDoctors(docs);
-      })
-      .catch((err) => console.error("Erro ao buscar médicos:", err));
+    const loadDoctors = async () => {
+      try {
+        const res = await apiFetch(`/api/proxy/profissionais`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setAllDoctors(data.map((p: any) => p.nome).filter(Boolean));
+      } catch {}
+    };
 
-    fetchEvents();
+    loadProcedimentos();
+    loadDoctors();
   }, []);
 
-  // Fetch filtered events when filters, refresh token or procedure names map change
   useEffect(() => {
     fetchEvents();
-  }, [filters.doctor, filters.patient, filters.startDate, filters.endDate, reloadToken, procedimentosMap]);
+  }, [fetchEvents, reloadToken]);
 
-  const handleRefresh = () => {
-    setReloadToken((old) => old + 1);
-  };
+  // Called by NewQueryForms after a successful save → refresh calendar
+  const handleAgendamentoSalvo = useCallback(() => {
+    setReloadToken((t) => t + 1);
+  }, []);
+
+  const handleRefresh = () => setReloadToken((t) => t + 1);
+  const handleNavigate = (d: Date) => setDate(d);
+  const handleViewChange = (v: SetStateAction<any>) => setView(v);
 
   const eventPropGetter: CalendarProps<CalendarEvent>["eventPropGetter"] = (
-    event,
-  ) => {
-    const variant = event.variant ?? "primary";
-    return {
-      className: `event-variant-${variant}`,
-    };
-  };
+    e,
+  ) => ({
+    className: `event-variant-${e.variant ?? "primary"}`,
+  });
 
-  const handleNavigate = (newDate: Date) => {
-    setDate(newDate);
-  };
-
-  const handleViewChange = (newView: SetStateAction<any>) => {
-    setView(newView);
-  };
-
-  const filteredEvents = events.filter((event) => {
-    if (filters.doctor && event.title !== filters.doctor) {
-      return false;
-    }
-
+  const filteredEvents = events.filter((e) => {
+    if (filters.doctor && e.title !== filters.doctor) return false;
     if (
       filters.patient &&
-      !event.patient?.toLowerCase().includes(filters.patient.toLowerCase())
-    ) {
+      !e.patient?.toLowerCase().includes(filters.patient.toLowerCase())
+    )
       return false;
-    }
-
-    if (filters.startDate) {
-      const filterStart = moment(filters.startDate, "YYYY-MM-DD").startOf(
-        "day",
-      );
-      if (moment(event.start).isBefore(filterStart)) {
-        return false;
-      }
-    }
-
-    if (filters.endDate) {
-      const filterEnd = moment(filters.endDate, "YYYY-MM-DD").endOf("day");
-      if (moment(event.start).isAfter(filterEnd)) {
-        return false;
-      }
-    }
-
+    if (
+      filters.startDate &&
+      moment(e.start).isBefore(
+        moment(filters.startDate, "YYYY-MM-DD").startOf("day"),
+      )
+    )
+      return false;
+    if (
+      filters.endDate &&
+      moment(e.start).isAfter(
+        moment(filters.endDate, "YYYY-MM-DD").endOf("day"),
+      )
+    )
+      return false;
     return true;
   });
 
+  console.log("[scheduling] Events state:", { total: events.length, filtered: filteredEvents.length, events: filteredEvents });
+
   const activeFiltersCount = Object.values(filters).filter(
-    (value) => value !== "",
+    (v) => v !== "",
   ).length;
-  // Adicione logo antes do return da página
-  console.log("Eventos filtrados:", filteredEvents);
+
   return (
     <main className="flex-1 space-y-4 p-4 md:p-8 overflow-hidden pt-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-primary">
-            Agenda 
+            Agenda
           </h2>
           <p className="text-muted-foreground italic text-sm">
             Controle de consultas e horários
@@ -256,9 +252,13 @@ export default function SchedulingPage() {
           >
             <RefreshCcw />
           </Button>
+
           <Sheet>
-            <SheetTrigger aschild>
-              <Button variant="outline" className="relative gap-2 cursor-pointer">
+            <SheetTrigger>
+              <Button
+                variant="outline"
+                className="relative gap-2 cursor-pointer"
+              >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filtros
                 {activeFiltersCount > 0 && (
@@ -269,7 +269,7 @@ export default function SchedulingPage() {
               </Button>
             </SheetTrigger>
             <SheetContent>
-              <SheetHeader className="">
+              <SheetHeader>
                 <SheetTitle>Filtrar Agenda</SheetTitle>
               </SheetHeader>
               <FieldGroup className="px-5">
@@ -298,7 +298,7 @@ export default function SchedulingPage() {
                         onValueChange={(v) =>
                           setFiltersDraft({
                             ...filtersDraft,
-                            doctor: v === "none" ? "" : (v ?? ""),
+                            doctor: v === "none" ? "" : v,
                           })
                         }
                       >
@@ -324,21 +324,18 @@ export default function SchedulingPage() {
                                 const [y, m, d] = filtersDraft.startDate
                                   .split("-")
                                   .map(Number);
-                                return new Date(y, m - 1, d); // local midnight, no UTC shift
+                                return new Date(y, m - 1, d);
                               })()
                             : undefined
                         }
-                        setDate={(newDate) =>
+                        setDate={(d) =>
                           setFiltersDraft({
                             ...filtersDraft,
-                            startDate: newDate
-                              ? format(newDate, "yyyy-MM-dd")
-                              : "",
+                            startDate: d ? format(d, "yyyy-MM-dd") : "",
                           })
                         }
                       />
                     </Field>
-
                     <Field>
                       <FieldLabel>Data Final</FieldLabel>
                       <DatePicker
@@ -348,16 +345,14 @@ export default function SchedulingPage() {
                                 const [y, m, d] = filtersDraft.endDate
                                   .split("-")
                                   .map(Number);
-                                return new Date(y, m - 1, d); // local midnight, no UTC shift
+                                return new Date(y, m - 1, d);
                               })()
                             : undefined
                         }
-                        setDate={(newDate) =>
+                        setDate={(d) =>
                           setFiltersDraft({
                             ...filtersDraft,
-                            endDate: newDate
-                              ? format(newDate, "yyyy-MM-dd")
-                              : "",
+                            endDate: d ? format(d, "yyyy-MM-dd") : "",
                           })
                         }
                       />
@@ -381,24 +376,24 @@ export default function SchedulingPage() {
               </FieldGroup>
             </SheetContent>
           </Sheet>
-          
-          <NewQueryForms />
+
+          {/* Pass onSuccess so the calendar refreshes after a new appointment is saved */}
+          <NewQueryForms onSuccess={handleAgendamentoSalvo} />
         </div>
       </div>
 
       <div className="relative rounded-xl border bg-card text-card-foreground shadow">
         {isLoading && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/70 p-4">
-            <div className="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
         )}
-
         <div className="p-1 sm:p-4">
           {isLoading && filteredEvents.length === 0 ? (
             <div className="space-y-4">
-              {Array.from({ length: 6 }).map((_, idx) => (
+              {Array.from({ length: 6 }).map((_, i) => (
                 <div
-                  key={idx}
+                  key={i}
                   className="h-14 w-full animate-pulse rounded-lg bg-muted"
                 />
               ))}
@@ -408,9 +403,13 @@ export default function SchedulingPage() {
               localizer={localizer}
               messages={messages}
               components={{
-                event: (props) => <CalendarEventCard {...props} showHover={true} />,
+                event: (props: any) => (
+                  <CalendarEventCard {...props} showHover={true} />
+                ),
                 agenda: {
-                  event: (props) => <CalendarEventCard {...props} showHover={false} />,
+                  event: (props: any) => (
+                    <CalendarEventCard {...props} showHover={false} />
+                  ),
                 },
               }}
               style={{ height: "calc(100vh - 250px)", minHeight: "600px" }}
