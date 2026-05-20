@@ -44,10 +44,12 @@ public class AgendamentoService {
         List<Agendamento> agendamentos;
 
         if (startDate != null && endDate != null && profissionalId != null) {
-            agendamentos = agendamentoRepository.findByOrganizacaoIdAndProfissionalIdAndDataBetween(orgId, profissionalId, startDate, endDate);
+            UUID profId = UUID.fromString(profissionalId);
+            agendamentos = agendamentoRepository.findByOrganizacaoIdAndProfissionalIdAndDataBetween(orgId, profId, startDate, endDate);
             log.info("Query result count (prof + dates): {}", agendamentos.size());
         } else if (pacienteId != null) {
-            agendamentos = agendamentoRepository.findByOrganizacaoIdAndPacienteId(orgId, pacienteId);
+            UUID patId = UUID.fromString(pacienteId);
+            agendamentos = agendamentoRepository.findByOrganizacaoIdAndPacienteId(orgId, patId);
             log.info("Query result count (paciente): {}", agendamentos.size());
         } else if (startDate != null && endDate != null) {
             agendamentos = agendamentoRepository.findByOrganizacaoIdAndDataBetween(orgId, startDate, endDate);
@@ -64,23 +66,32 @@ public class AgendamentoService {
 
     public AgendamentoDTO obterPorId(String id) {
         String orgId = TenantContext.getOrganizationId();
-        Agendamento agendamento = agendamentoRepository.findByOrganizacaoIdAndId(orgId, UUID.fromString(id)) 
+        Agendamento agendamento = agendamentoRepository.findByOrganizacaoIdAndId(orgId, UUID.fromString(id)) // Use UUID.fromString
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento not found with ID: " + id));
         return toDTO(agendamento);
     }
 
+    /**
+     * Creates a new appointment. If the patient doesn't exist, it will be auto-created.
+     * 
+     * @param dto The appointment DTO containing appointment and patient details
+     * @return The created appointment DTO
+     * @throws IllegalArgumentException if pacienteNome is empty or professional doesn't exist
+     */
     public AgendamentoDTO criar(AgendamentoDTO dto) {
     String orgId = TenantContext.getOrganizationId();
     log.info("Creating new agendamento for organization: {}", orgId);
     
+    // ✅ FIRST: Validate patient name (required)
     if (dto.getPacienteNome() == null || dto.getPacienteNome().trim().isEmpty()) {
         throw new IllegalArgumentException("Patient name is required");
     }
 
+    // ✅ SECOND: Handle null pacienteId properly
     Paciente paciente = null;
     
     if (dto.getPacienteId() != null && !dto.getPacienteId().isEmpty() && !dto.getPacienteId().equals("null")) {
-        try { 
+        try { // Changed to handle UUID
             UUID patientId = UUID.fromString(dto.getPacienteId());
             paciente = pacienteRepository.findByOrganizacaoIdAndId(orgId, patientId)
                     .orElse(null);
@@ -90,6 +101,7 @@ public class AgendamentoService {
         }
     }
     
+    // ✅ THIRD: If patient not found, create new one
     if (paciente == null) {
         log.info("Auto-creating patient: {}", dto.getPacienteNome());
         paciente = new Paciente();
@@ -106,7 +118,8 @@ public class AgendamentoService {
         log.info("Created new patient with ID: {}", paciente.getId());
     }
 
-    Profissional profissional = profissionalRepository.findByOrganizacaoIdAndId(orgId, Long.parseLong(dto.getProfissionalId()))
+    // ✅ FOURTH: Continue with professional and appointment
+    Profissional profissional = profissionalRepository.findByOrganizacaoIdAndId(orgId, UUID.fromString(dto.getProfissionalId()))
             .orElseThrow(() -> new IllegalArgumentException("Profissional not found: " + dto.getProfissionalId()));
 
     Agendamento agendamento = new Agendamento();
@@ -115,7 +128,7 @@ public class AgendamentoService {
     agendamento.setHoraInicio(dto.getHoraInicio());
     agendamento.setHoraFim(dto.getHoraFim());
     agendamento.setPacienteId(paciente.getId());
-    agendamento.setProfissionalId(Long.parseLong(dto.getProfissionalId()));
+    agendamento.setProfissionalId(UUID.fromString(dto.getProfissionalId()));
     agendamento.setStatus(dto.getStatus() != null ? dto.getStatus() : "agendado");
     agendamento.setProcedimentosIds(dto.getProcedimentosIds());
     agendamento.setObservacoes(dto.getObservacoes());
@@ -132,7 +145,7 @@ public class AgendamentoService {
         String orgId = TenantContext.getOrganizationId();
         log.info("Updating agendamento {} for organization: {}", id, orgId);
 
-        Agendamento agendamento = agendamentoRepository.findByOrganizacaoIdAndId(orgId, UUID.fromString(id))
+        Agendamento agendamento = agendamentoRepository.findByOrganizacaoIdAndId(orgId, UUID.fromString(id)) // Use UUID.fromString
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento not found with ID: " + id));
 
         if (dto.getData() != null) agendamento.setData(dto.getData());
@@ -143,25 +156,26 @@ public class AgendamentoService {
         if (dto.getObservacoes() != null) agendamento.setObservacoes(dto.getObservacoes());
         if (dto.getConfirmado() != null) agendamento.setConfirmado(dto.getConfirmado());
 
-        if (dto.getPacienteId() != null && !dto.getPacienteId().equals(agendamento.getPacienteId().toString())) {
+        // If patient or professional ID changed, validate they exist
+        if (dto.getPacienteId() != null && !dto.getPacienteId().equals(agendamento.getPacienteId().toString())) { // agendamento.getPacienteId() should return UUID
             UUID newPacienteId;
             try {
                 newPacienteId = UUID.fromString(dto.getPacienteId());
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid Patient ID format: " + dto.getPacienteId(), e);
             }
-            Paciente paciente = pacienteRepository.findByOrganizacaoIdAndId(orgId, newPacienteId)
+            Paciente paciente = pacienteRepository.findByOrganizacaoIdAndId(orgId, newPacienteId) // Use UUID
                     .orElseThrow(() -> new IllegalArgumentException("Paciente not found with ID: " + dto.getPacienteId()));
-            agendamento.setPacienteId(newPacienteId); 
+            agendamento.setPacienteId(newPacienteId); // Set UUID
             agendamento.setPaciente(paciente);
         }
 
-        if (dto.getProfissionalId() != null && !dto.getProfissionalId().equals(agendamento.getProfissionalId().toString())) {
+        if (dto.getProfissionalId() != null && !dto.getProfissionalId().equals(agendamento.getProfissionalId().toString())) { // agendamento.getProfissionalId() should return UUID
             UUID newProfissionalId;
             try { newProfissionalId = UUID.fromString(dto.getProfissionalId()); } catch (IllegalArgumentException e) { throw new IllegalArgumentException("Invalid Professional ID format: " + dto.getProfissionalId(), e); }
-            Profissional profissional = profissionalRepository.findByOrganizacaoIdAndId(orgId, newProfissionalId) 
+            Profissional profissional = profissionalRepository.findByOrganizacaoIdAndId(orgId, newProfissionalId) // Use UUID
                     .orElseThrow(() -> new IllegalArgumentException("Profissional not found: " + dto.getProfissionalId()));
-            agendamento.setProfissionalId(newProfissionalId); 
+            agendamento.setProfissionalId(newProfissionalId); // Set UUID
             agendamento.setProfissional(profissional);
         }
 
@@ -173,7 +187,7 @@ public class AgendamentoService {
         String orgId = TenantContext.getOrganizationId();
         log.info("Deleting agendamento {} for organization: {}", id, orgId);
 
-        Agendamento agendamento = agendamentoRepository.findByOrganizacaoIdAndId(orgId, UUID.fromString(id))
+        Agendamento agendamento = agendamentoRepository.findByOrganizacaoIdAndId(orgId, UUID.fromString(id)) // Use UUID.fromString
                 .orElseThrow(() -> new IllegalArgumentException("Agendamento not found with ID: " + id));
 
         agendamentoRepository.delete(agendamento);
@@ -181,13 +195,13 @@ public class AgendamentoService {
 
     private AgendamentoDTO toDTO(Agendamento agendamento) {
         return new AgendamentoDTO(
-                agendamento.getId() != null ? agendamento.getId().toString() : null, 
+                agendamento.getId() != null ? agendamento.getId().toString() : null, // Convert UUID to String
                 agendamento.getData(),
                 agendamento.getHoraInicio(),
                 agendamento.getHoraFim(),
-                agendamento.getPacienteId() != null ? agendamento.getPacienteId().toString() : null, 
+                agendamento.getPacienteId() != null ? agendamento.getPacienteId().toString() : null, // Assuming getPacienteId returns UUID
                 agendamento.getPaciente() != null ? agendamento.getPaciente().getNome() : null,
-                agendamento.getProfissionalId() != null ? agendamento.getProfissionalId().toString() : null,
+                agendamento.getProfissionalId() != null ? agendamento.getProfissionalId().toString() : null, // Assuming getProfissionalId returns UUID
                 agendamento.getProfissional() != null ? agendamento.getProfissional().getNome() : null,
                 agendamento.getStatus(),
                 agendamento.getProcedimentosIds(),

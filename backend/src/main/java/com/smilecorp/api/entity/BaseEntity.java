@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * Base entity with multi-tenant support.
@@ -12,8 +13,8 @@ import java.time.LocalDateTime;
 @MappedSuperclass
 public class BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    protected Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    protected UUID id;
 
     @Column(name = "organizacao_id", nullable = false, updatable = false)
     @JsonIgnore
@@ -28,7 +29,7 @@ public class BaseEntity {
     public BaseEntity() {
     }
 
-    public BaseEntity(Long id, String organizacaoId, LocalDateTime criadoEm, LocalDateTime atualizadoEm) {
+    public BaseEntity(UUID id, String organizacaoId, LocalDateTime criadoEm, LocalDateTime atualizadoEm) {
         this.id = id;
         this.organizacaoId = organizacaoId;
         this.criadoEm = criadoEm;
@@ -50,11 +51,11 @@ public class BaseEntity {
         this.atualizadoEm = LocalDateTime.now();
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

@@ -8,16 +8,17 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ProfissionalRepository extends JpaRepository<Profissional, Long> {
+public interface ProfissionalRepository extends JpaRepository<Profissional, UUID> {
     
     List<Profissional> findByOrganizacaoId(String organizacaoId);
     
-    @Query("SELECT p FROM Profissional p WHERE p.organizacaoId = :organizacaoId AND LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%'))")
+    @Query("SELECT p FROM Profissional p WHERE p.organizacaoId = :organizacaoId AND LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%'))")   
     List<Profissional> findByOrganizacaoIdAndNomeContainingIgnoreCase(@Param("organizacaoId") String organizacaoId, @Param("nome") String nome);
     
-    Optional<Profissional> findByOrganizacaoIdAndId(String organizacaoId, Long id);
+    Optional<Profissional> findByOrganizacaoIdAndId(String organizacaoId, UUID id);
     
     List<Profissional> findByOrganizacaoIdAndAtivoTrue(String organizacaoId);
 }

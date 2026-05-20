@@ -7,6 +7,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Agendamento (Appointment) entity - represents a scheduled appointment.
@@ -30,14 +31,14 @@ public class Agendamento extends BaseEntity {
     private String horaFim;
 
     @Column(name = "paciente_id", nullable = false)
-    private Long pacienteId;
+    private UUID pacienteId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "paciente_id", insertable = false, updatable = false)
     private Paciente paciente;
 
     @Column(name = "profissional_id", nullable = false)
-    private Long profissionalId;
+    private UUID profissionalId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profissional_id", insertable = false, updatable = false)
@@ -61,7 +62,7 @@ public class Agendamento extends BaseEntity {
     }
 
     public Agendamento(String organizacaoId, LocalDateTime data, String horaInicio, String horaFim,
-                       Long pacienteId, Paciente paciente, Long profissionalId, Profissional profissional,
+                       UUID pacienteId, Paciente paciente, UUID profissionalId, Profissional profissional,
                        String status, List<String> procedimentosIds, String observacoes, Boolean confirmado) {
         super();
         this.organizacaoId = organizacaoId;
@@ -102,11 +103,11 @@ public class Agendamento extends BaseEntity {
         this.horaFim = horaFim;
     }
 
-    public Long getPacienteId() {
+    public UUID getPacienteId() {
         return pacienteId;
     }
 
-    public void setPacienteId(Long pacienteId) {
+    public void setPacienteId(UUID pacienteId) {
         this.pacienteId = pacienteId;
     }
 
@@ -118,11 +119,11 @@ public class Agendamento extends BaseEntity {
         this.paciente = paciente;
     }
 
-    public Long getProfissionalId() {
+    public UUID getProfissionalId() {
         return profissionalId;
     }
 
-    public void setProfissionalId(Long profissionalId) {
+    public void setProfissionalId(UUID profissionalId) {
         this.profissionalId = profissionalId;
     }
 
